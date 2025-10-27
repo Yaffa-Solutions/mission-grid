@@ -15,7 +15,8 @@ export async function createContractor(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { error: 'You must be logged in to add a contractor' };
+    console.error('You must be logged in to add a contractor');
+    return;
   }
   const name = (formData.get('name') as string) || '';
   const poc_name = (formData.get('poc_name') as string) || null;
@@ -86,4 +87,20 @@ export async function deleteContractor(formData: FormData) {
   }
 
   revalidatePath('/dashboard/contractors');
+}
+
+export async function fetchContractors() {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('contractor')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching contractors:', error);
+    return [];
+  }
+
+  return data ?? [];
 }
