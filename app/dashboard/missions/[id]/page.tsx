@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { assignTruck, unassignTruck, updateMissionStatus } from '../actions';
 
 type MissionStep = {
@@ -159,10 +160,20 @@ export default async function MissionDetailPage({
         </div>
 
         <div className="border-t pt-4">
-          <h3 className="font-semibold mb-2">Mission Steps:</h3>
-          <p className="text-lg text-gray-700">
-            {renderSteps(missionData.steps_snapshot)}
-          </p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="font-semibold mb-2">Mission Steps:</h3>
+              <p className="text-lg text-gray-700">
+                {renderSteps(missionData.steps_snapshot)}
+              </p>
+            </div>
+            <Link
+              href={`/dashboard/missions/${missionData.id}/board`}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-medium"
+            >
+              📊 Open Dispatch Board
+            </Link>
+          </div>
         </div>
 
         {/* Change Status */}
