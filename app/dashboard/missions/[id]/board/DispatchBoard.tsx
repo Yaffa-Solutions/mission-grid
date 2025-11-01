@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { updateTruckStatus, requestGL, approveGL } from './actions';
+import { updateTruckStatus, requestGL, approveGL, logFuel, logDelivery } from './actions';
 
 type MissionStep = {
   step_name: string;
@@ -47,6 +47,24 @@ export default function DispatchBoard({
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [activeRowId, setActiveRowId] = useState<string | null>(null);
   const [selectedNewStatus, setSelectedNewStatus] = useState('');
+
+  // Fuel modal state
+  const [showFuelModal, setShowFuelModal] = useState(false);
+  const [fuelEntryId, setFuelEntryId] = useState<string | null>(null);
+  const [fuelData, setFuelData] = useState({
+    fuel_liters_company: 0,
+    fuel_liters_driver: 0,
+    fuel_station_name: '',
+  });
+
+  // Delivery modal state
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [deliveryEntryId, setDeliveryEntryId] = useState<string | null>(null);
+  const [deliveryData, setDeliveryData] = useState({
+    pallets_loaded: 0,
+    pallets_received: 0,
+    damage_notes: '',
+  });
 
   // Toggle selection
   const toggleSelection = (entryId: string) => {
@@ -115,11 +133,27 @@ export default function DispatchBoard({
 
   // Handle status update for single truck
   const handleUpdateSingleStatus = async (entryId: string, newStatus: string) => {
+    // Check if the new status requires GL approval
+    const targetStep = steps.find((s) => s.step_name === newStatus);
+    const entry = entries.find((e) => e.id === entryId);
+
+    if (targetStep?.requires_gl && !entry?.gl_approved) {
+      alert('GL approval required before moving to this status. Please request GL first.');
+      return;
+    }
+
     setIsUpdating(true);
     await updateTruckStatus(mission_id, [entryId], newStatus);
     setIsUpdating(false);
     setActiveRowId(null);
     setSelectedNewStatus('');
+  };
+
+  // Handle GL request for single truck
+  const handleRequestSingleGL = async (entryId: string) => {
+    setIsUpdating(true);
+    await requestGL(mission_id, [entryId]);
+    setIsUpdating(false);
   };
 
   // Handle status update for multiple trucks
@@ -156,6 +190,61 @@ export default function DispatchBoard({
     setIsUpdating(true);
     await approveGL(mission_id, selectedEntryIds);
     setIsUpdating(false);
+  };
+
+  // Handle fuel logging
+  const handleLogFuel = async () => {
+    if (!fuelEntryId) return;
+
+    setIsUpdating(true);
+    const result = await logFuel(mission_id, fuelEntryId, fuelData);
+
+    if (result.success) {
+      setShowFuelModal(false);
+      setFuelEntryId(null);
+      setFuelData({
+        fuel_liters_company: 0,
+        fuel_liters_driver: 0,
+        fuel_station_name: '',
+      });
+    } else {
+      alert(`Error: ${result.error}`);
+    }
+
+    setIsUpdating(false);
+  };
+
+  // Handle delivery logging
+  const handleLogDelivery = async () => {
+    if (!deliveryEntryId) return;
+
+    setIsUpdating(true);
+    const result = await logDelivery(mission_id, deliveryEntryId, deliveryData);
+
+    if (result.success) {
+      setShowDeliveryModal(false);
+      setDeliveryEntryId(null);
+      setDeliveryData({
+        pallets_loaded: 0,
+        pallets_received: 0,
+        damage_notes: '',
+      });
+    } else {
+      alert(`Error: ${result.error}`);
+    }
+
+    setIsUpdating(false);
+  };
+
+  // Open fuel modal
+  const openFuelModal = (entryId: string, entry: TruckEntry) => {
+    setFuelEntryId(entryId);
+    setFuelData({
+      fuel_liters_company: entry.fuel_liters_company || 0,
+      fuel_liters_driver: entry.fuel_liters_driver || 0,
+      fuel_station_name: entry.fuel_station_name || '',
+    });
+    setShowFuelModal(true);
   };
 
   const selectedCount = selectedEntryIds.length;
@@ -289,6 +378,10 @@ export default function DispatchBoard({
                 const isActiveRow = activeRowId === entry.id;
                 const nextSteps = getNextStepsForTruck(entry.current_status);
 
+                // Check if next step requires GL
+                const nextStepRequiresGLForTruck = nextSteps.length > 0 && nextSteps[0].requires_gl;
+                const needsGLApproval = nextStepRequiresGLForTruck && !entry.gl_approved;
+
                 return (
                   <tr key={entry.id} className={`border-b ${isActiveRow ? 'bg-blue-50' : ''}`}>
                     <td className="p-4">
@@ -377,13 +470,49 @@ export default function DispatchBoard({
                           </button>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => setActiveRowId(entry.id)}
-                          disabled={isUpdating}
-                          className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                        >
-                          Update Status
-                        </button>
+                        <div className="flex gap-2 flex-wrap">
+                          {/* Request GL button if next step requires GL */}
+                          {needsGLApproval && !entry.gl_requested && (
+                            <button
+                              onClick={() => handleRequestSingleGL(entry.id)}
+                              disabled={isUpdating}
+                              className="px-3 py-1.5 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                            >
+                              🚦 Request GL
+                            </button>
+                          )}
+                          {/* Show GL status if requested */}
+                          {entry.gl_requested && !entry.gl_approved && (
+                            <span className="px-3 py-1.5 bg-yellow-100 text-yellow-800 text-xs rounded border border-yellow-300">
+                              ⏳ GL Pending
+                            </span>
+                          )}
+                          <button
+                            onClick={() => setActiveRowId(entry.id)}
+                            disabled={isUpdating || needsGLApproval}
+                            className="px-3 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                            title={needsGLApproval ? 'GL approval required' : ''}
+                          >
+                            {needsGLApproval ? '🔒 Status' : 'Status'}
+                          </button>
+                          <button
+                            onClick={() => openFuelModal(entry.id, entry)}
+                            disabled={isUpdating}
+                            className="px-3 py-1.5 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                          >
+                            ⛽ Fuel
+                          </button>
+                          <button
+                            onClick={() => {
+                              setDeliveryEntryId(entry.id);
+                              setShowDeliveryModal(true);
+                            }}
+                            disabled={isUpdating}
+                            className="px-3 py-1.5 bg-green-500 text-white text-xs rounded hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                          >
+                            📦 Delivery
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -462,6 +591,162 @@ export default function DispatchBoard({
                 className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 {isUpdating ? 'Updating...' : 'Update'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fuel Modal */}
+      {showFuelModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Log Fuel</h3>
+              <button
+                onClick={() => setShowFuelModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Company Fuel (Liters)
+                </label>
+                <input
+                  type="number"
+                  value={fuelData.fuel_liters_company}
+                  onChange={(e) => setFuelData({ ...fuelData, fuel_liters_company: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  min="0"
+                  step="0.1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Driver Fuel (Liters)
+                </label>
+                <input
+                  type="number"
+                  value={fuelData.fuel_liters_driver}
+                  onChange={(e) => setFuelData({ ...fuelData, fuel_liters_driver: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  min="0"
+                  step="0.1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Station Name
+                </label>
+                <input
+                  type="text"
+                  value={fuelData.fuel_station_name}
+                  onChange={(e) => setFuelData({ ...fuelData, fuel_station_name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter station name"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowFuelModal(false)}
+                disabled={isUpdating}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogFuel}
+                disabled={isUpdating}
+                className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {isUpdating ? 'Saving...' : 'Save Fuel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delivery/Reconciliation Modal */}
+      {showDeliveryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Log Delivery</h3>
+              <button
+                onClick={() => setShowDeliveryModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Pallets Loaded
+                </label>
+                <input
+                  type="number"
+                  value={deliveryData.pallets_loaded}
+                  onChange={(e) => setDeliveryData({ ...deliveryData, pallets_loaded: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  min="0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Pallets Received
+                </label>
+                <input
+                  type="number"
+                  value={deliveryData.pallets_received}
+                  onChange={(e) => setDeliveryData({ ...deliveryData, pallets_received: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  min="0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Damage Notes
+                </label>
+                <textarea
+                  value={deliveryData.damage_notes}
+                  onChange={(e) => setDeliveryData({ ...deliveryData, damage_notes: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={4}
+                  placeholder="Enter any damage or issues..."
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeliveryModal(false)}
+                disabled={isUpdating}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogDelivery}
+                disabled={isUpdating}
+                className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {isUpdating ? 'Saving...' : 'Save Delivery'}
               </button>
             </div>
           </div>
