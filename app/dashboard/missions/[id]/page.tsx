@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { assignTruck, unassignTruck, updateMissionStatus } from '../actions';
 
 type MissionStep = {
@@ -118,93 +117,49 @@ export default async function MissionDetailPage({
   const assigned = (assignedTrucks || []) as MissionEntry[];
   const available = (availableTrucks || []) as AvailableTruck[];
 
-  // Status badge color
-  const statusColors: Record<string, string> = {
-    Draft: 'bg-gray-200 text-gray-800',
-    Active: 'bg-green-200 text-green-800',
-    Reconciling: 'bg-yellow-200 text-yellow-800',
-    Closed: 'bg-blue-200 text-blue-800',
-  };
-
   return (
     <div className="max-w-7xl mx-auto py-8 px-4">
-      {/* Mission Header */}
-      <div className="rounded-lg shadow-md p-6 mb-6">
-        <div className="flex justify-between items-start mb-4">
+      {/* Mission Configuration */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="space-y-6">
+          {/* Mission Steps */}
           <div>
-            <h1 className="text-3xl font-bold mb-2">{missionData.name}</h1>
-            <div className="flex gap-4 text-sm text-gray-600">
-              <span>
-                📅 {new Date(missionData.mission_date).toLocaleDateString()}
-              </span>
-              {missionData.border_crossing && (
-                <span>🚧 {missionData.border_crossing}</span>
-              )}
-            </div>
+            <h3 className="text-lg font-semibold mb-3 text-gray-900">Mission Steps</h3>
+            <p className="text-base text-gray-700 bg-gray-50 rounded-lg p-4 border border-gray-200">
+              {renderSteps(missionData.steps_snapshot)}
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <span
-              className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                statusColors[missionData.status] || 'bg-gray-200 text-gray-800'
-              }`}
-            >
-              {missionData.status}
-            </span>
-            <a
-              href="/dashboard/missions"
-              className="text-blue-600 hover:underline"
-            >
-              ← Back to Missions
-            </a>
-          </div>
-        </div>
 
-        <div className="border-t pt-4">
-          <div className="flex justify-between items-start">
-            <div>
-              <h3 className="font-semibold mb-2">Mission Steps:</h3>
-              <p className="text-lg text-gray-700">
-                {renderSteps(missionData.steps_snapshot)}
-              </p>
-            </div>
-            <Link
-              href={`/dashboard/missions/${missionData.id}/board`}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-medium"
-            >
-              📊 Open Dispatch Board
-            </Link>
+          {/* Change Status */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3 text-gray-900">Mission Status</h3>
+            <form action={updateMissionStatus} className="flex items-center gap-3">
+              <input type="hidden" name="mission_id" value={missionData.id} />
+              <select
+                name="status"
+                defaultValue={missionData.status}
+                className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="Draft">Draft</option>
+                <option value="Active">Active</option>
+                <option value="Reconciling">Reconciling</option>
+                <option value="Closed">Closed</option>
+              </select>
+              <button
+                type="submit"
+                className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+              >
+                Update Status
+              </button>
+            </form>
           </div>
-        </div>
-
-        {/* Change Status */}
-        <div className="border-t pt-4 mt-4">
-          <form action={updateMissionStatus} className="flex items-center gap-3">
-            <input type="hidden" name="mission_id" value={missionData.id} />
-            <label className="font-semibold">Change Status:</label>
-            <select
-              name="status"
-              defaultValue={missionData.status}
-              className="border border-gray-300 rounded px-3 py-1"
-            >
-              <option value="Draft">Draft</option>
-              <option value="Active">Active</option>
-              <option value="Reconciling">Reconciling</option>
-              <option value="Closed">Closed</option>
-            </select>
-            <button
-              type="submit"
-              className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-            >
-              Update
-            </button>
-          </form>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Assigned Trucks */}
-        <div className="rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold mb-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-bold mb-4 text-gray-900">
             Assigned Trucks ({assigned.length})
           </h2>
 
@@ -260,8 +215,8 @@ export default async function MissionDetailPage({
         </div>
 
         {/* Available Trucks */}
-        <div className="rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold mb-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-bold mb-4 text-gray-900">
             Available Trucks ({available.length})
           </h2>
 

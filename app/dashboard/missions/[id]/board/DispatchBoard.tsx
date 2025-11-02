@@ -253,16 +253,13 @@ export default function DispatchBoard({
 
   return (
     <div>
-      <div className="rounded-lg shadow-md p-6 mb-6">
-        <h1 className="text-2xl font-bold mb-2">{mission_name}</h1>
-        <p className="text-gray-600">Live Dispatch Board</p>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          <span className="text-sm font-semibold">Mission Steps:</span>
+      <div className="rounded-lg shadow-md p-6 mb-6 bg-white border border-gray-200">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-sm font-semibold text-gray-700">Mission Steps:</span>
           {steps.map((step, idx) => (
             <span
               key={idx}
-              className={`px-3 py-1 rounded-full text-sm ${
+              className={`px-3 py-1 rounded-full text-sm font-medium ${
                 step.requires_gl
                   ? 'bg-yellow-100 text-yellow-800 border border-yellow-300'
                   : 'bg-blue-100 text-blue-800'

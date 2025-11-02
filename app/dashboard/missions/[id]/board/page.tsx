@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import DispatchBoard from './DispatchBoard';
-import Link from 'next/link';
 
 type MissionStep = {
   step_name: string;
@@ -63,16 +62,6 @@ export default async function DispatchBoardPage({
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4">
-      {/* Navigation */}
-      <div className="mb-4">
-        <Link
-          href={`/dashboard/missions/${id}`}
-          className="text-blue-600 hover:underline"
-        >
-          ← Back to Mission Details
-        </Link>
-      </div>
-
       <DispatchBoard
         mission_id={missionData.id}
         mission_name={missionData.name}

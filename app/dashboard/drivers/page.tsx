@@ -19,12 +19,20 @@ export default async function DriversPage({
   const drivers = await fetchDrivers();
 
   return (
-    <div className="flex-1 w-full flex flex-col gap-10 items-center p-8">
-      <h1 className="text-2xl font-bold">Driver & Truck Intake</h1>
+    <div className="max-w-7xl mx-auto py-8 px-4">
+      {/* Page Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          السائقين والشاحنات / Drivers & Trucks
+        </h1>
+        <p className="text-gray-600">
+          Manage driver intake and truck assignments
+        </p>
+      </div>
 
       {/* Error/Success Messages */}
       {searchParams.error && (
-        <div className="w-full max-w-2xl bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
@@ -40,7 +48,7 @@ export default async function DriversPage({
       )}
 
       {searchParams.success && (
-        <div className="w-full max-w-2xl bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
@@ -56,8 +64,8 @@ export default async function DriversPage({
       )}
 
       {/* CSV/Excel Upload Form */}
-      <div className="w-full max-w-2xl border rounded-lg p-6 shadow-sm bg-blue-50">
-        <h2 className="text-xl font-semibold mb-4">رفع ملف جماعي / Bulk Upload via CSV or Excel</h2>
+      <div className="mb-8 bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+        <h2 className="text-xl font-semibold mb-4 text-gray-900">رفع ملف جماعي / Bulk Upload via CSV or Excel</h2>
         <div className="text-sm text-gray-600 mb-4 space-y-2">
           <p>Upload a CSV or Excel file (.xlsx, .xls)</p>
           <p className="font-medium">Required columns (الأعمدة المطلوبة):</p>
@@ -71,13 +79,13 @@ export default async function DriversPage({
             <li>عدد المشاتيح / capacity_pallets (optional / اختياري)</li>
           </ul>
         </div>
-        <form action={uploadDriverCSV} encType="multipart/form-data" className="flex flex-col gap-4">
+        <form action={uploadDriverCSV} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Select Contractor:</label>
+            <label className="block text-sm font-medium mb-2 text-gray-700">Select Contractor:</label>
             <select
               name="contractor_id"
               required
-              className="w-full border rounded p-2"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">-- Choose a contractor --</option>
               {contractors?.map((c) => (
@@ -87,19 +95,19 @@ export default async function DriversPage({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Upload File (CSV or Excel):</label>
+            <label className="block text-sm font-medium mb-2 text-gray-700">Upload File (CSV or Excel):</label>
             <input
               type="file"
               name="driver_file"
               accept=".csv,.xlsx,.xls"
               required
-              className="w-full border rounded p-2"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
+            className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
           >
             Upload List
           </button>
@@ -107,13 +115,15 @@ export default async function DriversPage({
       </div>
 
       {/* Manual Entry Form */}
-      <DriverIntakeForm contractors={contractors || []} />
+      <div className="mb-8">
+        <DriverIntakeForm contractors={contractors || []} />
+      </div>
 
       {/* Display existing drivers */}
-      <div className="w-full max-w-6xl mt-8">
-        <h2 className="text-xl font-semibold mb-4">Registered Drivers</h2>
+      <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+        <h2 className="text-2xl font-bold mb-6 text-gray-900">Registered Drivers ({drivers.length})</h2>
         {drivers.length === 0 ? (
-          <p className="text-gray-500">No drivers registered yet.</p>
+          <p className="text-gray-500 text-center py-8">No drivers registered yet.</p>
         ) : (
           <div className="space-y-4">
             {drivers.map((driver) => {
@@ -121,37 +131,37 @@ export default async function DriversPage({
               return (
                 <div
                   key={driver.id}
-                  className="border rounded-lg p-4 shadow-sm"
+                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
                   <div className="flex justify-between items-start gap-4">
                     {/* Display mode */}
                     <div className="flex-1">
-                      <div className="font-medium text-lg mb-2">{driver.name}</div>
-                      <div className="text-sm space-y-1">
+                      <div className="font-semibold text-lg mb-2 text-gray-900">{driver.name}</div>
+                      <div className="text-sm space-y-1 text-gray-600">
                         <div>
-                          <span className="font-semibold">Contractor:</span>{' '}
+                          <span className="font-medium">Contractor:</span>{' '}
                           {driver.contractor?.name || 'N/A'}
                         </div>
                         {driver.national_id && (
                           <div>
-                            <span className="font-semibold">National ID:</span>{' '}
+                            <span className="font-medium">National ID:</span>{' '}
                             {driver.national_id}
                           </div>
                         )}
                         {driver.phone && (
                           <div>
-                            <span className="font-semibold">Phone:</span> {driver.phone}
+                            <span className="font-medium">Phone:</span> {driver.phone}
                           </div>
                         )}
                         {truck && (
                           <>
                             <div>
-                              <span className="font-semibold">Truck Plate:</span>{' '}
+                              <span className="font-medium">Truck Plate:</span>{' '}
                               {truck.plate_no}
                             </div>
                             {truck.vehicle_type && (
                               <div>
-                                <span className="font-semibold">Vehicle Type:</span>{' '}
+                                <span className="font-medium">Vehicle Type:</span>{' '}
                                 {truck.vehicle_type}
                               </div>
                             )}
@@ -172,25 +182,25 @@ export default async function DriversPage({
                           defaultValue={driver.name}
                           placeholder="Driver Name"
                           required
-                          className="border p-1 text-sm rounded"
+                          className="border border-gray-300 px-2 py-1 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <input
                           name="national_id"
                           defaultValue={driver.national_id ?? ''}
                           placeholder="National ID"
-                          className="border p-1 text-sm rounded"
+                          className="border border-gray-300 px-2 py-1 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <input
                           name="phone"
                           defaultValue={driver.phone ?? ''}
                           placeholder="Phone"
-                          className="border p-1 text-sm rounded"
+                          className="border border-gray-300 px-2 py-1 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <select
                           name="contractor_id"
                           defaultValue={driver.contractor_id}
                           required
-                          className="border p-1 text-sm rounded"
+                          className="border border-gray-300 px-2 py-1 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           {contractors?.map((c) => (
                             <option key={c.id} value={c.id}>
@@ -203,28 +213,28 @@ export default async function DriversPage({
                           defaultValue={truck?.plate_no ?? ''}
                           placeholder="Truck Plate"
                           required
-                          className="border p-1 text-sm rounded"
+                          className="border border-gray-300 px-2 py-1 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <input
                           name="vehicle_type"
                           defaultValue={truck?.vehicle_type ?? ''}
                           placeholder="Vehicle Type"
-                          className="border p-1 text-sm rounded"
+                          className="border border-gray-300 px-2 py-1 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <button
                           type="submit"
-                          className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                          className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 font-medium transition-colors"
                         >
                           Save
                         </button>
                       </form>
 
                       {/* Delete form */}
-                      <form action={deleteDriver} className="flex items-center">
+                      <form action={deleteDriver} className="flex items-start">
                         <input type="hidden" name="driver_id" value={driver.id} />
                         <button
                           type="submit"
-                          className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                          className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 font-medium transition-colors"
                         >
                           Delete
                         </button>
