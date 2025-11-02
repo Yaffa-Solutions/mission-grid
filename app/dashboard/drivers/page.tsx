@@ -1,8 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import DriverIntakeForm from './DriverIntakeForm';
-import { fetchDrivers, updateDriver, deleteDriver } from './actions';
+import { fetchDrivers, updateDriver, deleteDriver, uploadDriverCSV } from './actions';
 
-export default async function DriversPage() {
+export default async function DriversPage({
+  searchParams,
+}: {
+  searchParams: { error?: string; success?: string };
+}) {
   const supabase = await createClient();
 
   // 1. Fetch the contractors you just built
@@ -18,6 +22,91 @@ export default async function DriversPage() {
     <div className="flex-1 w-full flex flex-col gap-10 items-center p-8">
       <h1 className="text-2xl font-bold">Driver & Truck Intake</h1>
 
+      {/* Error/Success Messages */}
+      {searchParams.error && (
+        <div className="w-full max-w-2xl bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-red-800">خطأ / Error</h3>
+              <p className="mt-1 text-sm text-red-700 whitespace-pre-wrap">{decodeURIComponent(searchParams.error)}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {searchParams.success && (
+        <div className="w-full max-w-2xl bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-green-800">نجح / Success</h3>
+              <p className="mt-1 text-sm text-green-700">{decodeURIComponent(searchParams.success)}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSV/Excel Upload Form */}
+      <div className="w-full max-w-2xl border rounded-lg p-6 shadow-sm bg-blue-50">
+        <h2 className="text-xl font-semibold mb-4">رفع ملف جماعي / Bulk Upload via CSV or Excel</h2>
+        <div className="text-sm text-gray-600 mb-4 space-y-2">
+          <p>Upload a CSV or Excel file (.xlsx, .xls)</p>
+          <p className="font-medium">Required columns (الأعمدة المطلوبة):</p>
+          <ul className="list-disc list-inside space-y-1 mr-4">
+            <li><strong>الاسم / name</strong> (required / مطلوب)</li>
+            <li><strong>رقم السيارة / plate_no</strong> (required / مطلوب)</li>
+            <li>رقم الهوية / national_id (optional / اختياري)</li>
+            <li>رقم الجوال / phone (optional / اختياري)</li>
+            <li>النوع / vehicle_type (optional / اختياري)</li>
+            <li>الحمولة / capacity_tons (optional / اختياري)</li>
+            <li>عدد المشاتيح / capacity_pallets (optional / اختياري)</li>
+          </ul>
+        </div>
+        <form action={uploadDriverCSV} encType="multipart/form-data" className="flex flex-col gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Select Contractor:</label>
+            <select
+              name="contractor_id"
+              required
+              className="w-full border rounded p-2"
+            >
+              <option value="">-- Choose a contractor --</option>
+              {contractors?.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Upload File (CSV or Excel):</label>
+            <input
+              type="file"
+              name="driver_file"
+              accept=".csv,.xlsx,.xls"
+              required
+              className="w-full border rounded p-2"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
+          >
+            Upload List
+          </button>
+        </form>
+      </div>
+
+      {/* Manual Entry Form */}
       <DriverIntakeForm contractors={contractors || []} />
 
       {/* Display existing drivers */}
